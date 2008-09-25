@@ -62,9 +62,9 @@ module BashrCamping::Views
     h1 "Bashr"
     
     p do
-      text "The "
-      a "heise.de", :href => 'http://heise.de/'
-      text " RSS feeds combined and with real content in them. "
+      # text "The "
+      # a "heise.de", :href => 'http://heise.de/'
+      # text " RSS feeds combined and with real content in them. "
       a "Check it out", :href => R(Feed)
       text '.'
     end
@@ -73,7 +73,7 @@ module BashrCamping::Views
   
   def _atom
     @headers['Content-Type'] = 'application/atom+xml'
-    # @headers['Content-Type'] = 'text/plain'
+    @headers['Content-Type'] = 'text/plain'
     
     Bashr.generate_atom @updated, @entries
   end

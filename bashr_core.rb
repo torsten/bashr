@@ -4,88 +4,54 @@ each{|_|require _}
 
 module Bashr
   
-  RELEASE = 3
+  RELEASE = 0
   
-  FEEDS = %w#
-    http://www.heise.de/newsticker/heise-atom.xml
-    http://www.heise.de/open/news/news-atom.xml
-    http://www.heise.de/mobil/newsticker/heise-atom.xml
-    http://www.heise.de/security/news/news-atom.xml
-  #
-
-  # FEEDS = %w#
-  #   newsticker-atom.xml
-  #   security-atom.xml
-  # #
+  FEED = 'http://german-bash.org/latest-quotes.xml'
+  # FEED = 'latest-quotes.xml'
   
   CACHE_FILE = "#{File.expand_path(File.dirname(__FILE__))}/bashr.cache"
   
   
   def self.fetch_entries
     cache = Marshal.load(File.read(Bashr::CACHE_FILE)) rescue {}
-    current_ids = []
+    current_keys = []
     
-    entries = 
-    # Over all FEEDs
-    Bashr::FEEDS.map do |feed|
-      doc = REXML::Document.new(open(feed))
-      
-      # Create a Hash for every feed with "meldung_id => meldung_data_as_hash"
-      Hash[
-        *doc.elements.collect("/feed/entry") do |entry|
-          link = entry.elements['link'].attributes['href']
-          
-          [ link[%r{/meldung/(\d+)}, 1].to_i,
-            {
-              :title => entry.elements['title'].text,
-              :link => link,
-              :id => entry.elements['id'].text,
-              :updated => entry.elements['updated'].text,
-              :source => link[%r{http://www.heise.de/(.+?)/}, 1],
-            }
-          ]
-        end.flatten
-      ]
+    doc = REXML::Document.new(open(Bashr::FEED))
+    
+    entries =
+    
+    # Extract the items/entries from the feed
+    doc.elements.collect("/rss/channel/item") do |entry|
+      {
+        :title => entry.elements['title'].text,
+        :link => entry.elements['link'].text,
+        :id => entry.elements['guid'].text,
+      }
     end.
-    # This gives an Array of Hashes containing the entries
-    # Now lets eliminate the double entries
-    inject({}) do |accu, hsh|
-      accu.merge hsh
-    end.to_a.
-    # Now lets sort this stuff by meldungs id
-    sort do |a, b|
-      a[0] <=> b[0]
-    end.
-    # And now make a nice array for the view
+    # Get for each item the content either from the cache or the web
     map do |entry|
-      cache_key = "#{entry[0]}:#{entry[1][:updated]}".to_sym
-      current_ids << entry[0]
+      cache_key = entry[:link].to_sym
+      current_keys << cache_key
       
       if not cache[cache_key]
-        $stderr.puts "MISS: #{entry[1][:link]}"
-        cache[cache_key] = open(entry[1][:link]).read
+        $stderr.puts "MISS: #{entry[:link]}"
+        cache[cache_key] = open(entry[:link]).read
       end
       
-      doc = Hpricot(cache[cache_key])
+      hdoc = Hpricot(cache[cache_key])
       
+      # Get the quote content and add line endings
+      entry[:content] =
+          (hdoc/"#quote#{entry[:link][%r{/id/(\d+)}, 1]} div.zitat").to_html.
+            gsub('</span>', '<br/></span>')
       
-      # Make relative images to absolute ones
-      (doc/"div[@class='meldung_wrapper'] > p img[@src^='/']").each do |img|
-        img['src'] = "http://www.heise.de#{img['src']}"
-      end
-      
-      # Remove ads
-      (doc/"div[@class*='ISI_IGNORE']").remove
-
-      # Find all things in a meldung and make them to HTML
-      entry[1][:content] = (doc/"div[@class='meldung_wrapper'] > *").to_html
-      
-      entry[1]
+      entry
     end
+        
     
     # Cleanup the cache and then write it back
     cache.delete_if do |key, value|
-      not current_ids.include? key.to_s[/^\d+/].to_i
+      not current_keys.include? key
     end
     
     File.open(Bashr::CACHE_FILE, 'wb') do |file|
@@ -102,7 +68,7 @@ module Bashr
     
     
     atom.feed :xmlns => 'http://www.w3.org/2005/Atom' do
-      atom.title "heise combo News"
+      atom.title "german-bash"
       
       atom.link :href => "http://www.heise.de/"
 
@@ -110,22 +76,20 @@ module Bashr
       
       
       atom.author do
-        atom.name "heise online"
+        atom.name "german-bash"
       end
       
-      atom.id "tag:torsten.becker@gmail.com,2008-06:Bashr"
+      atom.id "tag:torsten.becker@gmail.com,2008-09:Bashr"
       
       atom.generator 'Bashr', :version => Bashr::RELEASE
       
       
       (entries or []).each do |entry|
         atom.entry do
-          # atom.title("#{entry[:source]}: #{entry[:title]}")
           atom.title entry[:title]
           atom.link :href => entry[:link]
           atom.id entry[:id]
-          atom.updated entry[:updated]
-          atom.category :term => entry[:source]
+          # atom.updated entry[:updated]
           
           atom.content entry[:content], :type => 'html'
           
