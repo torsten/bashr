@@ -1,4 +1,4 @@
-%w.time rexml/document ubygems builder hpricot open-uri..
+%w.time rexml/document ubygems builder hpricot open-uri zlib..
 each{|_|require _}
 
 
@@ -9,17 +9,26 @@ module Bashr
   FEED = 'http://german-bash.org/latest-quotes.xml'
   # FEED = 'latest-quotes.xml'
   
-  CACHE_FILE = "#{File.expand_path(File.dirname(__FILE__))}/bashr.cache"
+  CACHE_FILE = "#{File.expand_path(File.dirname(__FILE__))}/site_cache.gz"
   
   
   def self.fetch_entries
-    cache = Marshal.load(File.read(Bashr::CACHE_FILE)) rescue {}
+    
+    cache = 
+    File.open(Bashr::CACHE_FILE) do |file|
+      gz = Zlib::GzipReader.new(file)
+      hsh = Marshal.load gz.read
+      gz.close
+      
+      hsh
+    end
+    
     current_keys = []
     
     doc = REXML::Document.new(open(Bashr::FEED))
     
-    entries =
     
+    entries =
     # Extract the items/entries from the feed
     doc.elements.collect("/rss/channel/item") do |entry|
       {
@@ -55,7 +64,9 @@ module Bashr
     end
     
     File.open(Bashr::CACHE_FILE, 'wb') do |file|
-      file.write Marshal.dump(cache)
+      gz = Zlib::GzipWriter.new(file)
+      gz.write Marshal.dump(cache)
+      gz.close
     end
     
     entries
@@ -68,15 +79,15 @@ module Bashr
     
     
     atom.feed :xmlns => 'http://www.w3.org/2005/Atom' do
-      atom.title "german-bash"
+      atom.title "German-bash.org"
       
-      atom.link :href => "http://www.heise.de/"
+      atom.link :href => "http://www.german-bash.org/"
 
       atom.updated updated
       
       
       atom.author do
-        atom.name "german-bash"
+        atom.name "German-bash.org"
       end
       
       atom.id "tag:torsten.becker@gmail.com,2008-09:Bashr"
@@ -89,10 +100,7 @@ module Bashr
           atom.title entry[:title]
           atom.link :href => entry[:link]
           atom.id entry[:id]
-          # atom.updated entry[:updated]
-          
           atom.content entry[:content], :type => 'html'
-          
         end
         
       end
