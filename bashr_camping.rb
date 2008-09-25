@@ -1,10 +1,10 @@
-%w.heisr_core ubygems camping..each{|_|require _}
+%w.bashr_core ubygems camping..each{|_|require _}
 
 
-Camping.goes :HeisrCamping
+Camping.goes :BashrCamping
 
 
-module HeisrCamping
+module BashrCamping
 
   def r500(k,m,x)
     env = @env
@@ -36,7 +36,7 @@ module HeisrCamping
 end
 
 
-module HeisrCamping::Controllers
+module BashrCamping::Controllers
   
   class Index < R '/'
     def get
@@ -46,7 +46,7 @@ module HeisrCamping::Controllers
   
   class Feed < R '/feed.atom'
     def get
-      @entries = Heisr.fetch_entries
+      @entries = Bashr.fetch_entries
       @updated = Time.now.utc.xmlschema
       
       render :_atom
@@ -56,10 +56,10 @@ module HeisrCamping::Controllers
 end
 
 
-module HeisrCamping::Views
+module BashrCamping::Views
   
   def index
-    h1 "Heisr"
+    h1 "Bashr"
     
     p do
       text "The "
@@ -75,7 +75,7 @@ module HeisrCamping::Views
     @headers['Content-Type'] = 'application/atom+xml'
     # @headers['Content-Type'] = 'text/plain'
     
-    Heisr.generate_atom @updated, @entries
+    Bashr.generate_atom @updated, @entries
   end
     
 end

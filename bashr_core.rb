@@ -2,7 +2,7 @@
 each{|_|require _}
 
 
-module Heisr
+module Bashr
   
   RELEASE = 3
   
@@ -18,16 +18,16 @@ module Heisr
   #   security-atom.xml
   # #
   
-  CACHE_FILE = "#{File.expand_path(File.dirname(__FILE__))}/heisr.cache"
+  CACHE_FILE = "#{File.expand_path(File.dirname(__FILE__))}/bashr.cache"
   
   
   def self.fetch_entries
-    cache = Marshal.load(File.read(Heisr::CACHE_FILE)) rescue {}
+    cache = Marshal.load(File.read(Bashr::CACHE_FILE)) rescue {}
     current_ids = []
     
     entries = 
     # Over all FEEDs
-    Heisr::FEEDS.map do |feed|
+    Bashr::FEEDS.map do |feed|
       doc = REXML::Document.new(open(feed))
       
       # Create a Hash for every feed with "meldung_id => meldung_data_as_hash"
@@ -88,7 +88,7 @@ module Heisr
       not current_ids.include? key.to_s[/^\d+/].to_i
     end
     
-    File.open(Heisr::CACHE_FILE, 'wb') do |file|
+    File.open(Bashr::CACHE_FILE, 'wb') do |file|
       file.write Marshal.dump(cache)
     end
     
@@ -113,9 +113,9 @@ module Heisr
         atom.name "heise online"
       end
       
-      atom.id "tag:torsten.becker@gmail.com,2008-06:Heisr"
+      atom.id "tag:torsten.becker@gmail.com,2008-06:Bashr"
       
-      atom.generator 'Heisr', :version => Heisr::RELEASE
+      atom.generator 'Bashr', :version => Bashr::RELEASE
       
       
       (entries or []).each do |entry|
