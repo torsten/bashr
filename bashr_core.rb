@@ -21,7 +21,7 @@ module Bashr
       gz.close
       
       hsh
-    end
+    end rescue {}
     
     current_keys = []
     
