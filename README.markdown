@@ -5,6 +5,8 @@ Bashr is an feed generator for www.german-bash.org.  It takes the RSS feed and i
 
 ## Dependencies
 
+You might need the following gems:
+
 * hpricot
 * builder
 * camping, if you want to run it as a local web app.
